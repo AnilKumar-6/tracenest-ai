@@ -42,4 +42,26 @@ data/
 integration-test-log.txt
 startup-error.txt
 startup-log.txt
+pagination-error.txt
 
+pagination-error.txt
+pagination-error.txt
+# Local diagnostic logs
+pagination-error.txt
+
+# Frontend generated files
+tracenest-frontend/node_modules/
+tracenest-frontend/dist/
+# TraceNest diagnostic log
+pagination-error.txt
+
+# Frontend generated files and local environment
+tracenest-frontend/node_modules/
+tracenest-frontend/dist/
+tracenest-frontend/.env
+tracenest-frontend/.env.*
+
+# Saved H2 Console webpage export
+sql/
+
+/sql/

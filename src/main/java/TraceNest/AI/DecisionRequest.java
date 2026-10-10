@@ -1,6 +1,7 @@
 package TraceNest.AI;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class DecisionRequest {
@@ -10,9 +11,14 @@ public class DecisionRequest {
     private String title;
 
     @NotBlank(message = "Reason is required")
+    @Size(max = 2000, message = "Reason cannot exceed 2000 characters")
     private String reason;
 
     @NotBlank(message = "Status is required")
+    @Pattern(
+        regexp = "PENDING|IN_PROGRESS|COMPLETED",
+        message = "Status must be PENDING, IN_PROGRESS, or COMPLETED"
+    )
     private String status;
 
     public String getTitle() {

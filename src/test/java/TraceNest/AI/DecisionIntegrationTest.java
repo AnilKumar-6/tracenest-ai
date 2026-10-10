@@ -1,29 +1,9 @@
 
-// package TraceNest.AI;
-
-// import static org.junit.jupiter.api.Assertions.assertNotNull;
-// import org.junit.jupiter.api.Test;
-// import org.springframework.boot.test.context.SpringBootTest;
-
-// @SpringBootTest(properties = {
-//     "spring.datasource.url=jdbc:h2:mem:tracenesttest;DB_CLOSE_DELAY=-1",
-//     "spring.datasource.driver-class-name=org.h2.Driver",
-//     "spring.datasource.username=sa",
-//     "spring.datasource.password=",
-//     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-//     "spring.jpa.hibernate.ddl-auto=create-drop"
-    
-    
-// })
-// class DecisionIntegrationTest {
-
-//     @Test
-//     void springApplicationContextShouldLoad() {
-//         assertNotNull(this);
-//     }
-// }
-
 package TraceNest.AI;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -32,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,7 +37,7 @@ class DecisionIntegrationTest {
 
     @Test
     void springApplicationContextShouldLoad() {
-        assertNotNull(this);
+        assertNotNull(mockMvc);
     }
 
     @Test
@@ -77,7 +58,8 @@ class DecisionIntegrationTest {
     }
 
     @Test
-    void createDecisionWithBlankTitleShouldReturn400() throws Exception {
+    void createDecisionWithBlankTitleShouldReturn400WithDetails()
+            throws Exception {
         mockMvc.perform(post("/api/decisions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -87,7 +69,63 @@ class DecisionIntegrationTest {
                         "status": "PENDING"
                     }
                     """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details.title")
+                        .value("Title is required"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void createDecisionWithInvalidStatusShouldReturn400WithDetails()
+            throws Exception {
+        mockMvc.perform(post("/api/decisions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "Invalid status test",
+                        "reason": "Testing status validation",
+                        "status": "APPROVED"
+                    }
+                    """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.details.status")
+                        .value("Status must be PENDING, IN_PROGRESS, or COMPLETED"));
+    }
+
+    @Test
+    void createDecisionWithBlankReasonShouldReturn400()
+            throws Exception {
+        mockMvc.perform(post("/api/decisions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "Missing reason",
+                        "reason": " ",
+                        "status": "PENDING"
+                    }
+                    """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.reason")
+                        .value("Reason is required"));
+    }
+
+    @Test
+    void createDecisionWithMalformedJsonShouldReturn400()
+            throws Exception {
+        mockMvc.perform(post("/api/decisions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"title": "Broken JSON", "reason":
+                    """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid request body. Check your JSON syntax and field values."));
     }
 
     @Test
@@ -100,61 +138,36 @@ class DecisionIntegrationTest {
 
     @Test
     void getDecisionByIdShouldReturn200() throws Exception {
-        String response = mockMvc.perform(post("/api/decisions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                        "title": "Find this decision",
-                        "reason": "Testing retrieval by ID",
-                        "status": "PENDING"
-                    }
-                    """))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        java.util.regex.Matcher matcher =
-                java.util.regex.Pattern
-                        .compile("\"id\"\\s*:\\s*(\\d+)")
-                        .matcher(response);
-
-        assertTrue(matcher.find(),
-                "POST response should contain a decision ID");
-
-        long id = Long.parseLong(matcher.group(1));
+        long id = createDecisionAndGetId(
+                "Find this decision",
+                "Testing retrieval by ID",
+                "PENDING");
 
         mockMvc.perform(get("/api/decisions/" + id))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.title")
                         .value("Find this decision"));
     }
 
     @Test
+    void getDecisionByUnknownIdShouldReturn404WithErrorBody()
+            throws Exception {
+        mockMvc.perform(get("/api/decisions/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message")
+                        .value("Decision not found"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
     void updateDecisionShouldReturn200() throws Exception {
-        String response = mockMvc.perform(post("/api/decisions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                        "title": "Original decision",
-                        "reason": "Before update",
-                        "status": "PENDING"
-                    }
-                    """))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        java.util.regex.Matcher matcher =
-                java.util.regex.Pattern
-                        .compile("\"id\"\\s*:\\s*(\\d+)")
-                        .matcher(response);
-
-        assertTrue(matcher.find(),
-                "POST response should contain a decision ID");
-
-        long id = Long.parseLong(matcher.group(1));
+        long id = createDecisionAndGetId(
+                "Original decision",
+                "Before update",
+                "PENDING");
 
         mockMvc.perform(put("/api/decisions/" + id)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -162,44 +175,103 @@ class DecisionIntegrationTest {
                     {
                         "title": "Updated decision",
                         "reason": "After update",
-                        "status": "APPROVED"
+                        "status": "COMPLETED"
                     }
                     """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title")
                         .value("Updated decision"))
-                .andExpect(jsonPath("$.status").value("APPROVED"));
+                .andExpect(jsonPath("$.reason")
+                        .value("After update"))
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
+
     @Test
-void deleteDecisionShouldReturn204() throws Exception {
-    String response = mockMvc.perform(post("/api/decisions")
+    void updateUnknownDecisionShouldReturn404() throws Exception {
+        mockMvc.perform(put("/api/decisions/999999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "Updated decision",
+                        "reason": "Testing missing ID",
+                        "status": "COMPLETED"
+                    }
+                    """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Decision not found"));
+    }
+
+    @Test
+    void deleteDecisionShouldReturn204() throws Exception {
+        long id = createDecisionAndGetId(
+                "Decision to delete",
+                "Testing DELETE endpoint",
+                "PENDING");
+
+        mockMvc.perform(delete("/api/decisions/" + id))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/decisions/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteUnknownDecisionShouldReturn404() throws Exception {
+        mockMvc.perform(delete("/api/decisions/999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    private long createDecisionAndGetId(
+            String title,
+            String reason,
+            String statusValue) throws Exception {
+
+        MvcResult result = mockMvc.perform(post("/api/decisions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "title": "%s",
+                        "reason": "%s",
+                        "status": "%s"
+                    }
+                    """.formatted(title, reason, statusValue)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String response = result.getResponse().getContentAsString();
+
+        Matcher matcher = Pattern
+                .compile("\"id\"\\s*:\\s*(\\d+)")
+                .matcher(response);
+
+        assertTrue(matcher.find(),
+                "POST response should contain a decision ID");
+
+        return Long.parseLong(matcher.group(1));
+    }
+@Test
+void createDecisionWithReasonExceeding2000CharactersShouldReturn400()
+        throws Exception {
+
+    String longReason = "a".repeat(2001);
+
+    String requestBody = """
+        {
+            "title": "Long reason test",
+            "reason": "%s",
+            "status": "PENDING"
+        }
+        """.formatted(longReason);
+
+    mockMvc.perform(post("/api/decisions")
             .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {
-                    "title": "Decision to delete",
-                    "reason": "Testing DELETE endpoint",
-                    "status": "PENDING"
-                }
-                """))
-            .andExpect(status().isCreated())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    java.util.regex.Matcher matcher =
-            java.util.regex.Pattern
-                    .compile("\"id\"\\s*:\\s*(\\d+)")
-                    .matcher(response);
-
-    assertTrue(matcher.find(),
-            "POST response should contain a decision ID");
-
-    long id = Long.parseLong(matcher.group(1));
-
-    mockMvc.perform(delete("/api/decisions/" + id))
-            .andExpect(status().isNoContent());
-
-    mockMvc.perform(get("/api/decisions/" + id))
-            .andExpect(status().isNotFound());
+            .content(requestBody))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Validation failed"))
+            .andExpect(jsonPath("$.details.reason")
+                    .value("Reason cannot exceed 2000 characters"));
 }
 }
