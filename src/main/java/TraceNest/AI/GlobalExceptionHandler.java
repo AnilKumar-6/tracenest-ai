@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -32,4 +33,17 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
+    
+@ExceptionHandler(ResponseStatusException.class)
+public ResponseEntity<Map<String, Object>> handleResponseStatusException(
+        ResponseStatusException exception) {
+
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", exception.getReason());
+
+    return ResponseEntity
+            .status(exception.getStatusCode())
+            .body(response);
+}
+
 }

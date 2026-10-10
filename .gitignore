@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+ 
+# Local database files
+data/
+*.mv.db
+*.trace.db
+
+# Local diagnostic logs
+integration-test-log.txt
+startup-error.txt
+startup-log.txt
+
