@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 
 const API_URL = 'https://tracenest-ai.onrender.com/api/decisions'
@@ -26,7 +26,6 @@ function formatDate(value) {
   if (!value) return '—'
 
   const date = new Date(value)
-
   if (Number.isNaN(date.getTime())) return String(value)
 
   return date.toLocaleDateString('en-IN', {
@@ -40,7 +39,6 @@ function formatDateTime(value) {
   if (!value) return 'Date unavailable'
 
   const date = new Date(value)
-
   if (Number.isNaN(date.getTime())) return String(value)
 
   return date.toLocaleString('en-IN', {
@@ -54,7 +52,6 @@ function formatDateTime(value) {
 
 async function readResponse(response) {
   const text = await response.text()
-
   if (!text) return null
 
   try {
@@ -107,7 +104,11 @@ function EmptyState({ search, onCreate }) {
       </p>
 
       {!search && (
-        <button className="button button-primary" onClick={onCreate}>
+        <button
+          className="button button-primary"
+          onClick={onCreate}
+          type="button"
+        >
           + Create decision
         </button>
       )}
@@ -144,6 +145,11 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [sortOrder, setSortOrder] = useState('desc')
 
+  const [currentPage, setCurrentPage] = useState(0)
+  const [pageSize, setPageSize] = useState(5)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
@@ -152,12 +158,12 @@ export default function App() {
     status: 'PENDING',
   })
 
-  // History panel state
   const [historyItems, setHistoryItems] = useState([])
   const [historyDecision, setHistoryDecision] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
 
+  // Load the current server-side page and dashboard statistics.
   const refreshAll = useCallback(async (quiet = false) => {
     if (quiet) {
       setRefreshing(true)
@@ -168,8 +174,23 @@ export default function App() {
     setError('')
 
     try {
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        size: String(pageSize),
+        sortBy: 'id',
+        direction: sortOrder,
+      })
+
+      if (search.trim()) {
+        params.set('search', search.trim())
+      }
+
+      if (statusFilter !== 'ALL' && statusFilter !== 'UNSET') {
+        params.set('status', statusFilter)
+      }
+
       const [decisionsResponse, dashboardResponse] = await Promise.all([
-        fetch(API_URL),
+        fetch(`${API_URL}/page?${params.toString()}`),
         fetch(`${API_URL}/dashboard`),
       ])
 
@@ -184,11 +205,21 @@ export default function App() {
 
       if (!dashboardResponse.ok) {
         throw new Error(
-          getErrorMessage(dashboardData, 'Unable to load dashboard statistics.'),
+          getErrorMessage(
+            dashboardData,
+            'Unable to load dashboard statistics.',
+          ),
         )
       }
 
-      setDecisions(Array.isArray(decisionsData) ? decisionsData : [])
+      setDecisions(
+        Array.isArray(decisionsData?.content)
+          ? decisionsData.content
+          : [],
+      )
+
+      setTotalPages(Number(decisionsData?.totalPages ?? 0))
+      setTotalElements(Number(decisionsData?.totalElements ?? 0))
 
       setDashboard(
         dashboardData && typeof dashboardData === 'object'
@@ -197,17 +228,22 @@ export default function App() {
       )
     } catch (err) {
       setError(
-        `${err.message || 'Unable to connect to the backend.'} Check that the Spring Boot server is running on port 8081.`,
+        `${err.message || 'Unable to connect to the backend.'} Please check the backend service.`,
       )
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [currentPage, pageSize, search, statusFilter, sortOrder])
 
   useEffect(() => {
     refreshAll()
   }, [refreshAll])
+
+  // Reset to the first page when search or filters change.
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [search, statusFilter, pageSize, sortOrder])
 
   const openCreateForm = () => {
     setEditingId(null)
@@ -222,7 +258,6 @@ export default function App() {
 
   const handleEdit = (decision) => {
     setEditingId(decision.id)
-
     setForm({
       title: decision.title ?? '',
       reason: decision.reason ?? '',
@@ -230,11 +265,9 @@ export default function App() {
         ? 'PENDING'
         : normalizeStatus(decision.status),
     })
-
     setShowForm(true)
     setNotice('')
     setError('')
-
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -271,9 +304,7 @@ export default function App() {
         editingId ? `${API_URL}/${editingId}` : API_URL,
         {
           method: editingId ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         },
       )
@@ -286,8 +317,16 @@ export default function App() {
         )
       }
 
-      setNotice(editingId ? 'Decision updated successfully.' : 'Decision created successfully.')
+      setNotice(
+        editingId
+          ? 'Decision updated successfully.'
+          : 'Decision created successfully.',
+      )
+
       closeForm()
+
+      // Show the first page after creating or editing a decision.
+      setCurrentPage(0)
       await refreshAll(true)
     } catch (err) {
       setError(err.message || 'Unable to save the decision.')
@@ -325,7 +364,12 @@ export default function App() {
         closeHistory()
       }
 
-      await refreshAll(true)
+      // If the last item on a later page is deleted, move back one page.
+      if (decisions.length === 1 && currentPage > 0) {
+        setCurrentPage((page) => page - 1)
+      } else {
+        await refreshAll(true)
+      }
     } catch (err) {
       setError(err.message || 'Unable to delete the decision.')
     }
@@ -338,9 +382,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/${decision.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: decision.title,
           reason: decision.reason,
@@ -397,59 +439,48 @@ export default function App() {
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('ALL')
+    setCurrentPage(0)
   }
-
-  const visibleDecisions = useMemo(() => {
-    const term = search.trim().toLowerCase()
-
-    return [...decisions]
-      .filter((decision) => {
-        const matchesSearch =
-          !term ||
-          String(decision.title ?? '').toLowerCase().includes(term) ||
-          String(decision.reason ?? '').toLowerCase().includes(term) ||
-          String(decision.id ?? '').includes(term)
-
-        const matchesStatus =
-          statusFilter === 'ALL' ||
-          normalizeStatus(decision.status) === statusFilter
-
-        return matchesSearch && matchesStatus
-      })
-      .sort((a, b) => {
-        const first = Number(a.id) || 0
-        const second = Number(b.id) || 0
-
-        return sortOrder === 'asc' ? first - second : second - first
-      })
-  }, [decisions, search, statusFilter, sortOrder])
 
   const totalCount = Number(
     dashboard.totalDecisions ??
     dashboard.total ??
     dashboard.totalCount ??
-    decisions.length,
+    totalElements,
   )
 
   const pendingCount = Number(
     dashboard.pendingDecisions ??
     dashboard.pending ??
     dashboard.pendingCount ??
-    decisions.filter((item) => normalizeStatus(item.status) === 'PENDING').length,
+    0,
   )
 
   const progressCount = Number(
     dashboard.inProgressDecisions ??
     dashboard.inProgress ??
     dashboard.inProgressCount ??
-    decisions.filter((item) => normalizeStatus(item.status) === 'IN_PROGRESS').length,
+    0,
   )
 
   const completedCount = Number(
     dashboard.completedDecisions ??
     dashboard.completed ??
     dashboard.completedCount ??
-    decisions.filter((item) => normalizeStatus(item.status) === 'COMPLETED').length,
+    0,
+  )
+
+  const firstRecord = totalElements === 0
+    ? 0
+    : currentPage * pageSize + 1
+
+  const lastRecord = Math.min(
+    (currentPage + 1) * pageSize,
+    totalElements,
+  )
+
+  const hasActiveFilters = Boolean(
+    search.trim() || statusFilter !== 'ALL',
   )
 
   return (
@@ -473,7 +504,7 @@ export default function App() {
           <a className="nav-item" href="#decisions">
             <span className="nav-icon">☷</span>
             Decisions
-            <span className="nav-count">{decisions.length}</span>
+            <span className="nav-count">{totalElements}</span>
           </a>
         </nav>
 
@@ -513,7 +544,7 @@ export default function App() {
 
         <div className="sidebar-footer">
           <span className="online-dot" />
-          Local workspace
+          Connected workspace
         </div>
       </aside>
 
@@ -635,9 +666,7 @@ export default function App() {
                     {editingId ? 'UPDATE RECORD' : 'NEW RECORD'}
                   </div>
                   <h2>{editingId ? 'Edit decision' : 'Create a decision'}</h2>
-                  <p>
-                    Capture the decision and the reason behind it.
-                  </p>
+                  <p>Capture the decision and the reason behind it.</p>
                 </div>
 
                 <button
@@ -727,7 +756,7 @@ export default function App() {
                 <p>Review and manage the decisions in your workspace.</p>
               </div>
               <span className="record-count">
-                {visibleDecisions.length} records
+                {totalElements} records
               </span>
             </div>
 
@@ -770,14 +799,16 @@ export default function App() {
                 className="button button-secondary sort-button"
                 type="button"
                 onClick={() =>
-                  setSortOrder((current) => current === 'asc' ? 'desc' : 'asc')
+                  setSortOrder((current) =>
+                    current === 'asc' ? 'desc' : 'asc',
+                  )
                 }
                 title="Change decision ID sort order"
               >
                 ID {sortOrder === 'asc' ? '↑' : '↓'}
               </button>
 
-              {(search || statusFilter !== 'ALL') && (
+              {hasActiveFilters && (
                 <button
                   className="button button-secondary sort-button"
                   type="button"
@@ -803,22 +834,24 @@ export default function App() {
                 <tbody>
                   {loading ? (
                     <LoadingRows />
-                  ) : visibleDecisions.length === 0 ? (
+                  ) : decisions.length === 0 ? (
                     <tr>
                       <td colSpan={5}>
                         <EmptyState
-                          search={Boolean(search || statusFilter !== 'ALL')}
+                          search={hasActiveFilters}
                           onCreate={openCreateForm}
                         />
                       </td>
                     </tr>
                   ) : (
-                    visibleDecisions.map((decision) => (
+                    decisions.map((decision) => (
                       <tr key={decision.id}>
                         <td className="id-cell">#{decision.id}</td>
 
                         <td className="decision-cell">
-                          <strong>{decision.title || 'Untitled decision'}</strong>
+                          <strong>
+                            {decision.title || 'Untitled decision'}
+                          </strong>
                           <p>{decision.reason || 'No reason provided.'}</p>
                         </td>
 
@@ -832,7 +865,10 @@ export default function App() {
                                 : normalizeStatus(decision.status)
                             }
                             onChange={(event) =>
-                              handleQuickStatusChange(decision, event.target.value)
+                              handleQuickStatusChange(
+                                decision,
+                                event.target.value,
+                              )
                             }
                             aria-label={`Change status for decision ${decision.id}`}
                           >
@@ -843,11 +879,7 @@ export default function App() {
                         </td>
 
                         <td className="date-cell">
-                          {formatDate(
-                            decision.createdAt ??
-                            decision.createdDate ??
-                            decision.dateCreated,
-                          )}
+                          {formatDate(decision.createdAt)}
                         </td>
 
                         <td>
@@ -889,12 +921,55 @@ export default function App() {
 
             <div className="table-footer">
               <span>
-                Showing {loading ? 0 : visibleDecisions.length} of {decisions.length} decisions
+                Showing {loading ? 0 : firstRecord}–{loading ? 0 : lastRecord}
+                {' '}of {totalElements} decisions
               </span>
-              <span className="footer-note">
-                <span className="online-dot" />
-                Your workspace data is stored locally
-              </span>
+
+              <div className="pagination-controls">
+                <label className="page-size-control">
+                  Rows
+                  <select
+                    value={pageSize}
+                    onChange={(event) =>
+                      setPageSize(Number(event.target.value))
+                    }
+                    aria-label="Rows per page"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+
+                <button
+                  className="button button-secondary sort-button"
+                  type="button"
+                  disabled={loading || currentPage <= 0}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(0, page - 1))
+                  }
+                >
+                  Previous
+                </button>
+
+                <span className="page-indicator">
+                  Page {totalPages === 0 ? 0 : currentPage + 1} of {totalPages}
+                </span>
+
+                <button
+                  className="button button-secondary sort-button"
+                  type="button"
+                  disabled={loading || currentPage + 1 >= totalPages}
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.min(totalPages - 1, page + 1),
+                    )
+                  }
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </section>
 
@@ -923,7 +998,8 @@ export default function App() {
                 <div className="eyebrow">AUDIT TRAIL</div>
                 <h2 id="history-title">Decision history</h2>
                 <p>
-                  #{historyDecision.id} · {historyDecision.title || 'Untitled decision'}
+                  #{historyDecision.id} ·{' '}
+                  {historyDecision.title || 'Untitled decision'}
                 </p>
               </div>
 
@@ -938,7 +1014,9 @@ export default function App() {
             </div>
 
             {historyLoading && (
-              <div className="history-message">Loading decision history…</div>
+              <div className="history-message">
+                Loading decision history…
+              </div>
             )}
 
             {historyError && (
