@@ -28,7 +28,7 @@ import jakarta.validation.Valid;
 
 @CrossOrigin(origins = {
     "http://localhost:5173",
-    "https://YOUR-FRONTEND-DOMAIN.vercel.app"
+    "https://tracenest-ai.vercel.app"
 })
 @RestController
 @RequestMapping("/api/decisions")
