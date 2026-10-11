@@ -1457,3 +1457,284 @@ h3 {
     flex-direction: column;
   }
 }
+
+/* =========================================
+   TraceNest AI — Professional SaaS Refresh
+   ========================================= */
+
+:root {
+  --ink: #20243a;
+  --muted: #747b91;
+  --line: #e7eaf2;
+  --purple: #6254d9;
+  --sidebar: #ffffff;
+}
+
+body {
+  color: var(--ink);
+  background: #f7f8fc;
+}
+
+button,
+input,
+textarea,
+select {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.sidebar {
+  color: #454b63;
+  background: #ffffff;
+  border-right: 1px solid #e8eaf3;
+  box-shadow: 3px 0 18px rgba(31, 36, 69, 0.025);
+}
+
+.brand-name {
+  color: #252943;
+}
+
+.brand-name strong {
+  color: #6254d9;
+}
+
+.sidebar-label {
+  color: #9298ac;
+}
+
+.nav-item {
+  color: #737991;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: #5e50d2;
+  background: #f0eeff;
+}
+
+.nav-item.active {
+  border-color: #e6e2ff;
+  box-shadow: inset 3px 0 #6c5ce7;
+}
+
+.nav-count {
+  color: #5f50cc;
+  background: #e9e6ff;
+}
+
+.sidebar-metric {
+  color: #727990;
+}
+
+.sidebar-metric strong {
+  color: #30354d;
+}
+
+.sidebar-help-icon {
+  color: #6557d7;
+  background: #f0eeff;
+  border-color: #e6e1ff;
+}
+
+.sidebar-bottom > p {
+  color: #82889e;
+}
+
+.sidebar-create {
+  color: #ffffff;
+  background: #6254d9;
+  border-color: #6254d9;
+  box-shadow: 0 4px 10px rgba(98, 84, 217, 0.16);
+}
+
+.sidebar-create:hover {
+  background: #5143c5;
+}
+
+.sidebar-footer {
+  color: #858ba0;
+  border-top-color: #eceef5;
+}
+
+.topbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: #e8eaf2;
+}
+
+.breadcrumb strong {
+  color: #343951;
+}
+
+.page-content {
+  padding-top: 32px;
+}
+
+.welcome-row h1 {
+  letter-spacing: -1.05px;
+}
+
+.button {
+  border-radius: 9px;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #7163e8, #5c4dce);
+  border-color: #6254d9;
+  box-shadow: 0 5px 12px rgba(98, 84, 217, 0.17);
+}
+
+.button-primary:hover {
+  background: linear-gradient(135deg, #6254d9, #4f42bf);
+  box-shadow: 0 7px 16px rgba(98, 84, 217, 0.22);
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  border-color: #e7eaf3;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(32, 36, 58, 0.025);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: #d9d4ff;
+  box-shadow: 0 9px 24px rgba(49, 43, 104, 0.07);
+}
+
+.stat-content h2 {
+  color: #252943;
+}
+
+.decisions-card,
+.form-card {
+  border-color: #e7eaf3;
+  border-radius: 14px;
+  box-shadow: 0 5px 20px rgba(32, 36, 58, 0.035);
+}
+
+.table-heading,
+.section-heading {
+  background: #ffffff;
+}
+
+.record-count {
+  border-color: #e5e1ff;
+  color: #5d50cc;
+  background: #f4f2ff;
+}
+
+.toolbar {
+  background: #fbfbfe;
+}
+
+.search-box {
+  border-color: #e3e6f0;
+  border-radius: 9px;
+}
+
+.search-box:focus-within {
+  border-color: #8d81ed;
+  box-shadow: 0 0 0 3px rgba(111, 96, 224, 0.1);
+}
+
+.filter-control select,
+.quick-status {
+  border-color: #e3e6f0;
+  border-radius: 8px;
+}
+
+.decision-table thead {
+  background: #f8f9fd;
+}
+
+.decision-table th {
+  color: #81879d;
+  letter-spacing: 0.7px;
+}
+
+.decision-table td {
+  border-bottom-color: #eef0f6;
+}
+
+.decision-table tbody tr:hover {
+  background: #faf9ff;
+}
+
+.decision-cell strong {
+  color: #30354d;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.action-button {
+  border-color: #e6e8f1;
+  border-radius: 8px;
+  transition:
+    transform 0.15s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+}
+
+.table-footer {
+  background: #fcfcfe;
+}
+
+.decision-form input,
+.decision-form textarea,
+.decision-form select {
+  border-color: #e1e4ef;
+  border-radius: 9px;
+}
+
+.alert {
+  border-radius: 10px;
+}
+
+.empty-state {
+  background: linear-gradient(180deg, #ffffff, #fcfbff);
+}
+
+.history-overlay {
+  background: rgba(24, 27, 52, 0.36);
+  backdrop-filter: blur(5px);
+}
+
+.history-panel {
+  border-left: 1px solid #e8eaf3;
+  box-shadow: -16px 0 48px rgba(24, 27, 52, 0.12);
+}
+
+.history-marker {
+  border-color: #7566e3;
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #e8eaf3;
+    box-shadow: 0 3px 12px rgba(31, 36, 69, 0.035);
+  }
+
+  .nav-item {
+    border-radius: 9px;
+  }
+
+  .stat-card:hover {
+    transform: none;
+  }
+}
