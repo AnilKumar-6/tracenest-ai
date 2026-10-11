@@ -1,28 +1,12 @@
-<!-- # React + Vite
+﻿# TraceNest AI — Decision Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project. -->
-
-# TraceNest AI — Decision Management System
-
-TraceNest AI is a full-stack web application for creating, managing, tracking, and reviewing decisions through a centralized dashboard. It demonstrates REST API development, database integration, server-side pagination, filtering, and a responsive React frontend.
+TraceNest AI is a full-stack web application for creating, managing, tracking, and reviewing decisions through a centralized dashboard. It demonstrates REST API development, database integration, server-side pagination, filtering, and sorting.
 
 ## Live Demo
 
 - **Frontend:** https://tracenest-ai.vercel.app
 - **Backend API:** https://tracenest-ai.onrender.com/api/decisions
+- **GitHub:** https://github.com/AnilKumar-6/tracenest-ai
 
 ## Features
 
@@ -33,8 +17,8 @@ TraceNest AI is a full-stack web application for creating, managing, tracking, a
 - Search decisions by text
 - Filter decisions by status
 - Server-side pagination and sorting
-- Dashboard summary counters
-- Persistent data storage using PostgreSQL
+- Dashboard summary statistics
+- Persistent PostgreSQL storage
 
 ## Technology Stack
 
@@ -47,7 +31,7 @@ TraceNest AI is a full-stack web application for creating, managing, tracking, a
 ### Backend
 - Java
 - Spring Boot
-- Spring Data JPA / Hibernate
+- Spring Data JPA and Hibernate
 - REST APIs
 - Maven
 
@@ -55,13 +39,13 @@ TraceNest AI is a full-stack web application for creating, managing, tracking, a
 - PostgreSQL
 - Neon PostgreSQL
 - Docker
-- Render — backend deployment
-- Vercel — frontend deployment
+- Render for backend deployment
+- Vercel for frontend deployment
 - Git and GitHub
 
 ## Architecture
 
-The React frontend communicates with the Spring Boot backend through REST APIs. The backend uses Spring Data JPA to interact with the PostgreSQL database.
+The React frontend communicates with the Spring Boot backend through REST APIs. The backend uses Spring Data JPA to interact with PostgreSQL.
 
 ```text
 React + Vite Frontend
@@ -94,10 +78,11 @@ Optional query parameters include `search` and `status`.
 ## Local Setup
 
 ### Prerequisites
-- Java Development Kit compatible with the project configuration
-- Maven or the included Maven Wrapper
+
+- Java Development Kit compatible with the project
+- Maven or the Maven Wrapper
 - Node.js and npm
-- PostgreSQL database
+- PostgreSQL
 
 ### 1. Clone the repository
 
@@ -108,9 +93,7 @@ cd tracenest-ai
 
 ### 2. Run the backend
 
-Configure your database connection using environment variables or your local application configuration. Do not commit database passwords or secret keys.
-
-Run the Spring Boot application using the Maven Wrapper if available:
+Configure your local database connection using the project's application configuration or environment variables. Never commit database passwords or secret keys.
 
 ```bash
 mvn spring-boot:run
@@ -126,11 +109,11 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite in your terminal.
+Open the local URL printed by Vite.
 
 ## Testing
 
-The backend includes automated tests. Run the test suite with:
+Run the backend test suite from the repository root:
 
 ```bash
 mvn test
@@ -139,13 +122,13 @@ mvn test
 ## Future Improvements
 
 - Authentication and role-based access control
-- More comprehensive error handling and validation
+- Expanded error handling and validation
 - Additional automated integration tests
-- Improved monitoring and application logging
+- Improved monitoring and logging
 - Enhanced dashboard analytics
 
 ## Author
 
-**Anil Kumar Yerragolla**
+Anil Kumar Yerragolla
 
 GitHub: https://github.com/AnilKumar-6
