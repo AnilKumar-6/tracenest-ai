@@ -92,6 +92,12 @@ public class DecisionService {
 
         decisionRepository.delete(decision);
     }
+    public List<DecisionHistory> getDecisionHistory(Long decisionId) {
+    getDecisionById(decisionId);
+
+    return historyRepository
+            .findByDecisionIdOrderByChangedAtDesc(decisionId);
+}
 
     public List<Decision> searchDecisionsByTitle(String title) {
         return decisionRepository.findByTitleContainingIgnoreCase(title);
