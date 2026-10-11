@@ -49,7 +49,8 @@ class DecisionServiceTest {
 
     @Test
     void getAllDecisionsReturnsAllDecisions() {
-        when(decisionRepository.findAll()).thenReturn(List.of(decision));
+        when(decisionRepository.findAll())
+                .thenReturn(List.of(decision));
 
         List<Decision> result = decisionService.getAllDecisions();
 
@@ -59,7 +60,8 @@ class DecisionServiceTest {
 
     @Test
     void getDecisionByIdReturnsDecisionWhenFound() {
-        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionRepository.findById(1L))
+                .thenReturn(Optional.of(decision));
 
         Decision result = decisionService.getDecisionById(1L);
 
@@ -68,7 +70,8 @@ class DecisionServiceTest {
 
     @Test
     void getDecisionByIdThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L)).thenReturn(Optional.empty());
+        when(decisionRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
@@ -80,12 +83,15 @@ class DecisionServiceTest {
     @Test
     void createDecisionSavesDecisionAndHistory() {
         decision.setId(1L);
-        when(decisionRepository.save(decision)).thenReturn(decision);
+
+        when(decisionRepository.save(decision))
+                .thenReturn(decision);
 
         Decision result = decisionService.createDecision(decision);
 
         assertNotNull(result);
         assertEquals("Test Decision", result.getTitle());
+
         verify(historyRepository).save(any(DecisionHistory.class));
     }
 
@@ -96,20 +102,26 @@ class DecisionServiceTest {
         updatedDecision.setReason("Updated reason");
         updatedDecision.setStatus("IN_PROGRESS");
 
-        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
-        when(decisionRepository.save(decision)).thenReturn(decision);
+        when(decisionRepository.findById(1L))
+                .thenReturn(Optional.of(decision));
 
-        Decision result = decisionService.updateDecision(1L, updatedDecision);
+        when(decisionRepository.save(decision))
+                .thenReturn(decision);
+
+        Decision result = decisionService.updateDecision(
+                1L, updatedDecision);
 
         assertEquals("Updated Decision", result.getTitle());
         assertEquals("Updated reason", result.getReason());
         assertEquals("IN_PROGRESS", result.getStatus());
+
         verify(historyRepository).save(any(DecisionHistory.class));
     }
 
     @Test
     void updateDecisionThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L)).thenReturn(Optional.empty());
+        when(decisionRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
         Decision updatedDecision = new Decision();
         updatedDecision.setTitle("Updated Decision");
@@ -118,15 +130,19 @@ class DecisionServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> decisionService.updateDecision(999L, updatedDecision));
+                () -> decisionService.updateDecision(
+                        999L, updatedDecision));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        verify(historyRepository, never()).save(any(DecisionHistory.class));
+
+        verify(historyRepository, never())
+                .save(any(DecisionHistory.class));
     }
 
     @Test
     void deleteDecisionDeletesAndRecordsHistory() {
-        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionRepository.findById(1L))
+                .thenReturn(Optional.of(decision));
 
         decisionService.deleteDecision(1L);
 
@@ -136,25 +152,32 @@ class DecisionServiceTest {
 
     @Test
     void deleteDecisionThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L)).thenReturn(Optional.empty());
+        when(decisionRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> decisionService.deleteDecision(999L));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        verify(historyRepository, never()).save(any(DecisionHistory.class));
+
+        verify(historyRepository, never())
+                .save(any(DecisionHistory.class));
     }
 
     @Test
     void searchDecisionsByTitleReturnsMatchingDecisions() {
-        when(decisionRepository.findByTitleContainingIgnoreCase("Test"))
+        when(decisionRepository
+                .findByTitleContainingIgnoreCase("Test"))
                 .thenReturn(List.of(decision));
 
-        List<Decision> result = decisionService.searchDecisionsByTitle("Test");
+        List<Decision> result =
+                decisionService.searchDecisionsByTitle("Test");
 
         assertEquals(1, result.size());
-        verify(decisionRepository).findByTitleContainingIgnoreCase("Test");
+
+        verify(decisionRepository)
+                .findByTitleContainingIgnoreCase("Test");
     }
 
     @Test
@@ -162,37 +185,66 @@ class DecisionServiceTest {
         when(decisionRepository.findByStatusIgnoreCase("PENDING"))
                 .thenReturn(List.of(decision));
 
-        List<Decision> result = decisionService.getDecisionsByStatus("PENDING");
+        List<Decision> result =
+                decisionService.getDecisionsByStatus("PENDING");
 
         assertEquals(1, result.size());
-        verify(decisionRepository).findByStatusIgnoreCase("PENDING");
+
+        verify(decisionRepository)
+                .findByStatusIgnoreCase("PENDING");
     }
 
     @Test
     void getDecisionsPaginatedReturnsPage() {
-        Page<Decision> page = new PageImpl<>(List.of(decision));
+        Page<Decision> page =
+                new PageImpl<>(List.of(decision));
+
         PageRequest pageable = PageRequest.of(0, 10);
 
-        when(decisionRepository.findAll(pageable)).thenReturn(page);
+        when(decisionRepository.findBySearchAndStatus(
+                null, null, pageable))
+                .thenReturn(page);
 
-        Page<Decision> result = decisionService.getDecisionsPaginated(pageable);
+        Page<Decision> result =
+                decisionService.getDecisionsPaginated(
+                        pageable, null, null);
 
         assertEquals(1, result.getTotalElements());
+
+        verify(decisionRepository).findBySearchAndStatus(
+                null, null, pageable);
     }
 
     @Test
     void getDecisionDashboardReturnsCounts() {
         when(decisionRepository.count()).thenReturn(5L);
-        when(decisionRepository.countByStatusIgnoreCase("PENDING")).thenReturn(2L);
-        when(decisionRepository.countByStatusIgnoreCase("IN_PROGRESS")).thenReturn(2L);
-        when(decisionRepository.countByStatusIgnoreCase("COMPLETED")).thenReturn(1L);
 
-        DecisionDashboardResponse result = decisionService.getDecisionDashboard();
+        when(decisionRepository
+                .countByStatusIgnoreCase("PENDING"))
+                .thenReturn(2L);
+
+        when(decisionRepository
+                .countByStatusIgnoreCase("IN_PROGRESS"))
+                .thenReturn(2L);
+
+        when(decisionRepository
+                .countByStatusIgnoreCase("COMPLETED"))
+                .thenReturn(1L);
+
+        DecisionDashboardResponse result =
+                decisionService.getDecisionDashboard();
 
         assertNotNull(result);
+
         verify(decisionRepository).count();
-        verify(decisionRepository).countByStatusIgnoreCase("PENDING");
-        verify(decisionRepository).countByStatusIgnoreCase("IN_PROGRESS");
-        verify(decisionRepository).countByStatusIgnoreCase("COMPLETED");
+
+        verify(decisionRepository)
+                .countByStatusIgnoreCase("PENDING");
+
+        verify(decisionRepository)
+                .countByStatusIgnoreCase("IN_PROGRESS");
+
+        verify(decisionRepository)
+                .countByStatusIgnoreCase("COMPLETED");
     }
 }

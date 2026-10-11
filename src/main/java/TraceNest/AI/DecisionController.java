@@ -25,10 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 import TraceNest.AI.dto.DecisionDashboardResponse;
 import jakarta.validation.Valid;
 
-
 @CrossOrigin(origins = {
-    "http://localhost:5173",
-    "https://tracenest-ai.vercel.app"
+        "http://localhost:5173",
+        "https://tracenest-ai.vercel.app"
 })
 @RestController
 @RequestMapping("/api/decisions")
@@ -136,7 +135,9 @@ public class DecisionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction) {
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
 
         if (page < 0) {
             throw new ResponseStatusException(
@@ -171,7 +172,8 @@ public class DecisionController {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return decisionService.getDecisionsPaginated(pageable);
+        return decisionService.getDecisionsPaginated(
+                pageable, search, status);
     }
 
     private void validateId(Long id) {
