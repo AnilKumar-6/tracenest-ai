@@ -1,192 +1,135 @@
-\# TraceNest AI — Decision Intelligence Workspace
+# TraceNest AI — Decision Intelligence Workspace
 
+TraceNest AI is a full-stack decision management application for recording decisions, tracking their progress, and reviewing decision history through a centralized dashboard.
 
+## Live Demo
 
-TraceNest AI is a full-stack decision management application that helps users record decisions, track their progress, and review decision history.
+- **Frontend:** https://tracenest-ai.vercel.app
+- **Backend API:** https://tracenest-ai.onrender.com/api/decisions
+- **API Documentation:** https://tracenest-ai.onrender.com/swagger-ui.html
+- **GitHub Repository:** https://github.com/AnilKumar-6/tracenest-ai
 
+## Features
 
+- Create and manage decisions
+- Edit decision details and update statuses
+- Track Pending, In Progress, and Completed decisions
+- Review decision history
+- Search decisions by text
+- Filter decisions by status
+- Server-side pagination and sorting
+- Dashboard summary statistics
+- Persistent database storage
 
-\## Features
+## Technology Stack
 
+**Frontend**
+- React
+- Vite
+- JavaScript
+- HTML and CSS
 
+**Backend**
+- Java 17
+- Spring Boot
+- Spring Data JPA and Hibernate
+- REST APIs
+- Maven
 
-\- Create, view, update, and delete decisions
+**Database and Deployment**
+- PostgreSQL with Neon
+- Docker
+- Render for backend hosting
+- Vercel for frontend hosting
+- Git and GitHub
 
-\- Track decision status: Pending, In Progress, and Completed
+## Architecture
 
-\- View dashboard summaries
+The React frontend communicates with the Spring Boot backend through REST APIs. The backend uses Spring Data JPA to access the database.
 
-\- Search, filter, sort, and paginate decisions
-
-\- Review decision history and recorded updates
-
-\- Store data in a persistent local H2 database
-
-\- REST APIs built with Spring Boot
-
-\- React-based frontend
-
-
-
-\## Technology Stack
-
-
-
-\*\*Backend\*\*
-
-\- Java 17
-
-\- Spring Boot
-
-\- Spring Data JPA
-
-\- Hibernate
-
-\- Maven
-
-\- H2 Database
-
-
-
-\*\*Frontend\*\*
-
-\- React
-
-\- Vite
-
-\- JavaScript
-
-\- HTML and CSS
-
-
-
-\## Run Locally
-
-
-
-\### Prerequisites
-
-
-
-\- Java 17
-
-\- Node.js and npm
-
-
-
-\### Start the backend
-
-
-
-From the project root, run:
-
-
-
-```powershell
-
-.\\mvnw.cmd spring-boot:run
-
+```text
+React + Vite Frontend
+        |
+        | HTTP / REST API
+        v
+Spring Boot Backend
+        |
+        | Spring Data JPA
+        v
+PostgreSQL Database
 ```
 
+## API Endpoints
 
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/decisions` | Retrieve decisions |
+| GET | `/api/decisions/dashboard` | Retrieve dashboard statistics |
+| GET | `/api/decisions/page` | Retrieve paginated decisions with optional search and status filters |
 
-Backend base URL: `http://localhost:8081`
+Example request:
 
+```text
+/api/decisions/page?page=0&size=5&sortBy=id&direction=desc
+```
 
+The paginated endpoint supports optional `search` and `status` parameters.
 
-\### Start the frontend
+## Run Locally
 
+### Prerequisites
 
+- Java 17 or the Java version required by the project
+- Maven or the included Maven Wrapper
+- Node.js and npm
+- A configured database connection
+
+### Start the backend
+
+From the repository root, configure your database connection and run:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+### Start the frontend
 
 Open a second terminal:
 
-
-
 ```powershell
-
-cd .\\tracenest-frontend
-
+cd .\tracenest-frontend
 npm.cmd install
-
 npm.cmd run dev
-
 ```
 
+Open the local URL printed by Vite.
 
+## Testing
 
-Open the frontend URL printed in the terminal, usually `http://localhost:5173` or another available port.
-
-
-
-\## Testing
-
-
-
-Run backend tests from the project root:
-
-
+Run the backend tests from the repository root:
 
 ```powershell
-
-.\\mvnw.cmd test
-
+.\mvnw.cmd test
 ```
 
+The backend test suite has passed locally.
 
+## Security
 
-\## Project Structure
+- Keep database credentials and API secrets out of Git.
+- Use environment variables for sensitive configuration.
+- Do not commit private logs or local database files.
 
+## Future Improvements
 
+- Authentication and role-based access control
+- Expanded validation and error handling
+- Additional integration tests
+- Monitoring and application logging
+- Enhanced dashboard analytics
 
-```text
+## Author
 
-tracenest-ai/
+Anil Kumar Yerragolla
 
-├── src/
-
-│   ├── main/java/TraceNest/AI/
-
-│   ├── main/resources/
-
-│   └── test/java/TraceNest/AI/
-
-├── sql/
-
-├── tracenest-frontend/
-
-├── pom.xml
-
-└── README.md
-
-```
-
-
-
-\## Data and Security
-
-
-
-The local H2 database is stored in the `data/` directory. It is intentionally excluded from Git so local records are not uploaded with the source code.
-
-
-
-Do not commit passwords, access tokens, environment secrets, or unsanitized diagnostic logs.
-
-
-
-\## Project Status
-
-
-
-The core dashboard, decision CRUD operations, status tracking, persistence, and decision history have been implemented. Backend tests have passed locally.
-
-
-
-\## Author
-
-
-
-Created as a full-stack Java and React portfolio project.
-
-
-
+GitHub: https://github.com/AnilKumar-6
