@@ -52,7 +52,8 @@ class DecisionServiceTest {
         when(decisionRepository.findAll())
                 .thenReturn(List.of(decision));
 
-        List<Decision> result = decisionService.getAllDecisions();
+        List<Decision> result =
+                decisionService.getAllDecisions();
 
         assertEquals(1, result.size());
         assertEquals("Test Decision", result.get(0).getTitle());
@@ -63,7 +64,8 @@ class DecisionServiceTest {
         when(decisionRepository.findById(1L))
                 .thenReturn(Optional.of(decision));
 
-        Decision result = decisionService.getDecisionById(1L);
+        Decision result =
+                decisionService.getDecisionById(1L);
 
         assertEquals("Test Decision", result.getTitle());
     }
@@ -87,12 +89,14 @@ class DecisionServiceTest {
         when(decisionRepository.save(decision))
                 .thenReturn(decision);
 
-        Decision result = decisionService.createDecision(decision);
+        Decision result =
+                decisionService.createDecision(decision);
 
         assertNotNull(result);
         assertEquals("Test Decision", result.getTitle());
 
-        verify(historyRepository).save(any(DecisionHistory.class));
+        verify(historyRepository)
+                .save(any(DecisionHistory.class));
     }
 
     @Test
@@ -115,7 +119,8 @@ class DecisionServiceTest {
         assertEquals("Updated reason", result.getReason());
         assertEquals("IN_PROGRESS", result.getStatus());
 
-        verify(historyRepository).save(any(DecisionHistory.class));
+        verify(historyRepository)
+                .save(any(DecisionHistory.class));
     }
 
     @Test
@@ -146,7 +151,9 @@ class DecisionServiceTest {
 
         decisionService.deleteDecision(1L);
 
-        verify(historyRepository).save(any(DecisionHistory.class));
+        verify(historyRepository)
+                .save(any(DecisionHistory.class));
+
         verify(decisionRepository).delete(decision);
     }
 
@@ -202,7 +209,7 @@ class DecisionServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
 
         when(decisionRepository.findBySearchAndStatus(
-                null, null, pageable))
+                "", "", pageable))
                 .thenReturn(page);
 
         Page<Decision> result =
@@ -212,12 +219,13 @@ class DecisionServiceTest {
         assertEquals(1, result.getTotalElements());
 
         verify(decisionRepository).findBySearchAndStatus(
-                null, null, pageable);
+                "", "", pageable);
     }
 
     @Test
     void getDecisionDashboardReturnsCounts() {
-        when(decisionRepository.count()).thenReturn(5L);
+        when(decisionRepository.count())
+                .thenReturn(5L);
 
         when(decisionRepository
                 .countByStatusIgnoreCase("PENDING"))

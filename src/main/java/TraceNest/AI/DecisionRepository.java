@@ -23,30 +23,30 @@ public interface DecisionRepository
             SELECT d FROM Decision d
             WHERE
                 (
-                    COALESCE(:search, '') = ''
-                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(COALESCE(:search, '')), '%')
-                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(COALESCE(:search, '')), '%')
-                    OR CAST(d.id AS string) LIKE CONCAT('%', COALESCE(:search, ''), '%')
+                    :search = ''
+                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR CAST(d.id AS string) LIKE CONCAT('%', :search, '%')
                 )
                 AND
                 (
-                    COALESCE(:status, '') = ''
-                    OR UPPER(d.status) = UPPER(COALESCE(:status, ''))
+                    :status = ''
+                    OR UPPER(d.status) = UPPER(:status)
                 )
             """,
         countQuery = """
             SELECT COUNT(d) FROM Decision d
             WHERE
                 (
-                    COALESCE(:search, '') = ''
-                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(COALESCE(:search, '')), '%')
-                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(COALESCE(:search, '')), '%')
-                    OR CAST(d.id AS string) LIKE CONCAT('%', COALESCE(:search, ''), '%')
+                    :search = ''
+                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR CAST(d.id AS string) LIKE CONCAT('%', :search, '%')
                 )
                 AND
                 (
-                    COALESCE(:status, '') = ''
-                    OR UPPER(d.status) = UPPER(COALESCE(:status, ''))
+                    :status = ''
+                    OR UPPER(d.status) = UPPER(:status)
                 )
             """
     )

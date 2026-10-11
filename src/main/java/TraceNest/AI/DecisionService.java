@@ -111,17 +111,19 @@ public class DecisionService {
     public Page<Decision> getDecisionsPaginated(
             Pageable pageable, String search, String status) {
 
-        String searchTerm = (search == null || search.isBlank())
-                ? null
+        // Use empty strings instead of null for PostgreSQL compatibility.
+        String searchTerm = (search == null)
+                ? ""
                 : search.trim();
 
         String statusFilter = (status == null
                 || status.isBlank()
                 || status.equalsIgnoreCase("ALL"))
-                ? null
+                ? ""
                 : status.trim().toUpperCase();
 
-        if (statusFilter != null
+        // Validate the requested status.
+        if (!statusFilter.isEmpty()
                 && !List.of("PENDING", "IN_PROGRESS", "COMPLETED")
                         .contains(statusFilter)) {
             throw new ResponseStatusException(
