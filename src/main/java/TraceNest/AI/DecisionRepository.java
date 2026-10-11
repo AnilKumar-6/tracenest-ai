@@ -24,9 +24,12 @@ public interface DecisionRepository
             WHERE
                 (
                     :search = ''
-                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR CAST(d.id AS string) LIKE CONCAT('%', :search, '%')
+                    OR LOWER(d.title) LIKE
+                        CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(d.reason) LIKE
+                        CONCAT('%', LOWER(:search), '%')
+                    OR CAST(d.id AS string) LIKE
+                        CONCAT('%', :search, '%')
                 )
                 AND
                 (
@@ -39,9 +42,12 @@ public interface DecisionRepository
             WHERE
                 (
                     :search = ''
-                    OR LOWER(d.title) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR LOWER(d.reason) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR CAST(d.id AS string) LIKE CONCAT('%', :search, '%')
+                    OR LOWER(d.title) LIKE
+                        CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(d.reason) LIKE
+                        CONCAT('%', LOWER(:search), '%')
+                    OR CAST(d.id AS string) LIKE
+                        CONCAT('%', :search, '%')
                 )
                 AND
                 (

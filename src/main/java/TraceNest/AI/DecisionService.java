@@ -32,7 +32,8 @@ public class DecisionService {
     public Decision getDecisionById(Long id) {
         return decisionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Decision not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Decision not found"));
     }
 
     @Transactional
@@ -53,7 +54,8 @@ public class DecisionService {
 
         Decision existingDecision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Decision not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Decision not found"));
 
         String oldTitle = existingDecision.getTitle();
         String oldReason = existingDecision.getReason();
@@ -63,12 +65,16 @@ public class DecisionService {
         existingDecision.setReason(updatedDecision.getReason());
         existingDecision.setStatus(updatedDecision.getStatus());
 
-        Decision savedDecision = decisionRepository.save(existingDecision);
+        Decision savedDecision =
+                decisionRepository.save(existingDecision);
 
         String details = "Updated decision. "
-                + "Title: " + oldTitle + " -> " + savedDecision.getTitle()
-                + "; Reason: " + oldReason + " -> " + savedDecision.getReason()
-                + "; Status: " + oldStatus + " -> " + savedDecision.getStatus();
+                + "Title: " + oldTitle + " -> "
+                + savedDecision.getTitle()
+                + "; Reason: " + oldReason + " -> "
+                + savedDecision.getReason()
+                + "; Status: " + oldStatus + " -> "
+                + savedDecision.getStatus();
 
         historyRepository.save(new DecisionHistory(
                 savedDecision.getId(),
@@ -82,7 +88,8 @@ public class DecisionService {
     public void deleteDecision(Long id) {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Decision not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Decision not found"));
 
         historyRepository.save(new DecisionHistory(
                 decision.getId(),
@@ -92,7 +99,9 @@ public class DecisionService {
         decisionRepository.delete(decision);
     }
 
-    public List<DecisionHistory> getDecisionHistory(Long decisionId) {
+    public List<DecisionHistory> getDecisionHistory(
+            Long decisionId) {
+
         getDecisionById(decisionId);
 
         return historyRepository
@@ -111,37 +120,51 @@ public class DecisionService {
     public Page<Decision> getDecisionsPaginated(
             Pageable pageable, String search, String status) {
 
-        // Use empty strings instead of null for PostgreSQL compatibility.
-        String searchTerm = (search == null)
-                ? ""
-                : search.trim();
+        String searchTerm =
+                (search == null) ? "" : search.trim();
 
-        String statusFilter = (status == null
-                || status.isBlank()
-                || status.equalsIgnoreCase("ALL"))
-                ? ""
-                : status.trim().toUpperCase();
+        String statusFilter =
+                (status == null
+                        || status.isBlank()
+                        || status.equalsIgnoreCase("ALL"))
+                        ? ""
+                        : status.trim().toUpperCase();
 
-        // Validate the requested status.
         if (!statusFilter.isEmpty()
-                && !List.of("PENDING", "IN_PROGRESS", "COMPLETED")
+                && !List.of(
+                        "PENDING",
+                        "IN_PROGRESS",
+                        "COMPLETED")
                         .contains(statusFilter)) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED");
+                    "Invalid status. Allowed values: "
+                            + "PENDING, IN_PROGRESS, COMPLETED");
         }
 
         return decisionRepository.findBySearchAndStatus(
-                searchTerm, statusFilter, pageable);
+                searchTerm,
+                statusFilter,
+                pageable);
     }
 
     public DecisionDashboardResponse getDecisionDashboard() {
         long total = decisionRepository.count();
-        long pending = decisionRepository.countByStatusIgnoreCase("PENDING");
-        long inProgress = decisionRepository.countByStatusIgnoreCase("IN_PROGRESS");
-        long completed = decisionRepository.countByStatusIgnoreCase("COMPLETED");
+
+        long pending =
+                decisionRepository.countByStatusIgnoreCase("PENDING");
+
+        long inProgress =
+                decisionRepository.countByStatusIgnoreCase("IN_PROGRESS");
+
+        long completed =
+                decisionRepository.countByStatusIgnoreCase("COMPLETED");
 
         return new DecisionDashboardResponse(
-                total, pending, inProgress, completed);
+                total,
+                pending,
+                inProgress,
+                completed);
     }
 }
