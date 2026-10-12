@@ -10,11 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -46,7 +46,20 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+public ResponseEntity<Map<String, Object>> handleMethodNotSupported(
+        HttpRequestMethodNotSupportedException exception) {
 
+    String message = "HTTP method not allowed for this endpoint.";
+
+    Map<String, Object> response = createErrorResponse(
+            HttpStatus.METHOD_NOT_ALLOWED,
+            message);
+
+    return ResponseEntity
+            .status(HttpStatus.METHOD_NOT_ALLOWED)
+            .body(response);
+}
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatusException(
             ResponseStatusException exception) {
