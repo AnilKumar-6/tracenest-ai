@@ -3,11 +3,16 @@ package TraceNest.AI;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotBlank;
@@ -21,12 +26,17 @@ public class Decision {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser owner;
+
     @NotBlank(message = "Title is required")
     @Size(max = 150, message = "Title must not exceed 150 characters")
     private String title;
 
     @NotBlank(message = "Reason is required")
-    @Size(max = 2000, message = "Reason must not exceed 2000 characters")
+    @Size(max = 2000, message = "Reason cannot exceed 2000 characters")
     private String reason;
 
     @NotBlank(message = "Status is required")
@@ -115,5 +125,13 @@ public class Decision {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public AppUser getOwner() {
+        return owner;
+    }
+
+    public void setOwner(AppUser owner) {
+        this.owner = owner;
     }
 }

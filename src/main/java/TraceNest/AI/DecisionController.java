@@ -1,6 +1,7 @@
 
 package TraceNest.AI;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Set;
 
@@ -46,33 +47,37 @@ public class DecisionController {
     }
 
     @GetMapping
-    public List<Decision> getAllDecisions() {
-        return decisionService.getAllDecisions();
+    public List<Decision> getAllDecisions(Principal principal) {
+        return decisionService.getAllDecisions(principal.getName());
     }
 
     @GetMapping("/{id}")
-    public Decision getDecisionById(@PathVariable Long id) {
+    public Decision getDecisionById(
+            @PathVariable Long id, Principal principal) {
         validateId(id);
-        return decisionService.getDecisionById(id);
+        return decisionService.getDecisionById(id, principal.getName());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Decision createDecision(
-            @Valid @RequestBody DecisionRequest request) {
+            @Valid @RequestBody DecisionRequest request,
+            Principal principal) {
 
         Decision decision = new Decision();
         decision.setTitle(request.getTitle().trim());
         decision.setReason(request.getReason().trim());
         decision.setStatus(request.getStatus());
 
-        return decisionService.createDecision(decision);
+        return decisionService.createDecision(
+                decision, principal.getName());
     }
 
     @PutMapping("/{id}")
     public Decision updateDecision(
             @PathVariable Long id,
-            @Valid @RequestBody DecisionRequest request) {
+            @Valid @RequestBody DecisionRequest request,
+            Principal principal) {
 
         validateId(id);
 
@@ -81,24 +86,27 @@ public class DecisionController {
         updatedDecision.setReason(request.getReason().trim());
         updatedDecision.setStatus(request.getStatus());
 
-        return decisionService.updateDecision(id, updatedDecision);
+        return decisionService.updateDecision(
+                id, updatedDecision, principal.getName());
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDecision(@PathVariable Long id) {
+    public void deleteDecision(
+            @PathVariable Long id, Principal principal) {
         validateId(id);
-        decisionService.deleteDecision(id);
+        decisionService.deleteDecision(id, principal.getName());
     }
 
     @GetMapping("/dashboard")
-    public DecisionDashboardResponse getDecisionDashboard() {
-        return decisionService.getDecisionDashboard();
+    public DecisionDashboardResponse getDecisionDashboard(
+            Principal principal) {
+        return decisionService.getDecisionDashboard(principal.getName());
     }
 
     @GetMapping("/search")
     public List<Decision> searchDecisions(
-            @RequestParam String title) {
+            @RequestParam String title, Principal principal) {
 
         if (title.isBlank()) {
             throw new ResponseStatusException(
@@ -106,17 +114,17 @@ public class DecisionController {
                     "Search title cannot be blank");
         }
 
-        return decisionService.searchDecisionsByTitle(title.trim());
+        return decisionService.searchDecisionsByTitle(
+                title.trim(), principal.getName());
     }
 
     @GetMapping("/filter")
     public List<Decision> filterDecisionsByStatus(
-            @RequestParam String status) {
+            @RequestParam String status, Principal principal) {
 
         if (status.isBlank()) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Status cannot be blank");
+                    HttpStatus.BAD_REQUEST, "Status cannot be blank");
         }
 
         String normalizedStatus = status.trim().toUpperCase();
@@ -127,7 +135,8 @@ public class DecisionController {
                     "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED");
         }
 
-        return decisionService.getDecisionsByStatus(normalizedStatus);
+        return decisionService.getDecisionsByStatus(
+                normalizedStatus, principal.getName());
     }
 
     @GetMapping("/page")
@@ -137,7 +146,8 @@ public class DecisionController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            Principal principal) {
 
         if (page < 0) {
             throw new ResponseStatusException(
@@ -173,7 +183,7 @@ public class DecisionController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return decisionService.getDecisionsPaginated(
-                pageable, search, status);
+                pageable, search, status, principal.getName());
     }
 
     private void validateId(Long id) {

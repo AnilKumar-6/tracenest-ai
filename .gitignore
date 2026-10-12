@@ -65,3 +65,15 @@ tracenest-frontend/.env.*
 sql/
 
 /sql/
+# Local backups and review artifacts
+backups/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Local database and diagnostic artifacts
+*.mv.db
+*.trace.db
+*.log

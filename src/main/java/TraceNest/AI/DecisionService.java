@@ -2,6 +2,7 @@
 package TraceNest.AI;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,79 +18,71 @@ public class DecisionService {
 
     private final DecisionRepository decisionRepository;
     private final DecisionHistoryRepository historyRepository;
+    private final AppUserRepository appUserRepository;
 
     public DecisionService(
             DecisionRepository decisionRepository,
-            DecisionHistoryRepository historyRepository) {
+            DecisionHistoryRepository historyRepository,
+            AppUserRepository appUserRepository) {
         this.decisionRepository = decisionRepository;
         this.historyRepository = historyRepository;
+        this.appUserRepository = appUserRepository;
     }
 
-    public List<Decision> getAllDecisions() {
-        return decisionRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<Decision> getAllDecisions(String email) {
+        return decisionRepository.findByOwner_EmailIgnoreCase(normalizeEmail(email));
     }
 
-    public Decision getDecisionById(Long id) {
-        return decisionRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Decision not found"));
+    @Transactional(readOnly = true)
+    public Decision getDecisionById(Long id, String email) {
+        return findOwnedDecision(id, email);
     }
 
     @Transactional
-    public Decision createDecision(Decision decision) {
-        Decision savedDecision = decisionRepository.save(decision);
+    public Decision createDecision(Decision decision, String email) {
+        AppUser owner = findUser(email);
+        decision.setOwner(owner);
+        decision.setId(null);
+
+        Decision saved = decisionRepository.save(decision);
 
         historyRepository.save(new DecisionHistory(
-                savedDecision.getId(),
+                saved.getId(),
                 "CREATED",
-                "Decision created: " + savedDecision.getTitle()));
+                "Decision created: " + saved.getTitle()));
 
-        return savedDecision;
+        return saved;
     }
 
     @Transactional
-    public Decision updateDecision(
-            Long id, Decision updatedDecision) {
+    public Decision updateDecision(Long id, Decision updatedDecision, String email) {
+        Decision existing = findOwnedDecision(id, email);
 
-        Decision existingDecision = decisionRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Decision not found"));
+        String oldTitle = existing.getTitle();
+        String oldReason = existing.getReason();
+        String oldStatus = existing.getStatus();
 
-        String oldTitle = existingDecision.getTitle();
-        String oldReason = existingDecision.getReason();
-        String oldStatus = existingDecision.getStatus();
+        existing.setTitle(updatedDecision.getTitle());
+        existing.setReason(updatedDecision.getReason());
+        existing.setStatus(updatedDecision.getStatus());
 
-        existingDecision.setTitle(updatedDecision.getTitle());
-        existingDecision.setReason(updatedDecision.getReason());
-        existingDecision.setStatus(updatedDecision.getStatus());
-
-        Decision savedDecision =
-                decisionRepository.save(existingDecision);
+        Decision saved = decisionRepository.save(existing);
 
         String details = "Updated decision. "
-                + "Title: " + oldTitle + " -> "
-                + savedDecision.getTitle()
-                + "; Reason: " + oldReason + " -> "
-                + savedDecision.getReason()
-                + "; Status: " + oldStatus + " -> "
-                + savedDecision.getStatus();
+                + "Title: " + oldTitle + " -> " + saved.getTitle()
+                + "; Reason: " + oldReason + " -> " + saved.getReason()
+                + "; Status: " + oldStatus + " -> " + saved.getStatus();
 
         historyRepository.save(new DecisionHistory(
-                savedDecision.getId(),
-                "UPDATED",
-                details));
+                saved.getId(), "UPDATED", details));
 
-        return savedDecision;
+        return saved;
     }
 
     @Transactional
-    public void deleteDecision(Long id) {
-        Decision decision = decisionRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Decision not found"));
+    public void deleteDecision(Long id, String email) {
+        Decision decision = findOwnedDecision(id, email);
 
         historyRepository.save(new DecisionHistory(
                 decision.getId(),
@@ -99,72 +92,86 @@ public class DecisionService {
         decisionRepository.delete(decision);
     }
 
-    public List<DecisionHistory> getDecisionHistory(
-            Long decisionId) {
-
-        getDecisionById(decisionId);
+    @Transactional(readOnly = true)
+    public List<DecisionHistory> getDecisionHistory(Long decisionId, String email) {
+        findOwnedDecision(decisionId, email);
 
         return historyRepository
                 .findByDecisionIdOrderByChangedAtDesc(decisionId);
     }
 
-    public List<Decision> searchDecisionsByTitle(String title) {
+    @Transactional(readOnly = true)
+    public List<Decision> searchDecisionsByTitle(String title, String email) {
         return decisionRepository
-                .findByTitleContainingIgnoreCase(title);
+                .findByOwner_EmailIgnoreCaseAndTitleContainingIgnoreCase(
+                        normalizeEmail(email), title);
     }
 
-    public List<Decision> getDecisionsByStatus(String status) {
-        return decisionRepository.findByStatusIgnoreCase(status);
+    @Transactional(readOnly = true)
+    public List<Decision> getDecisionsByStatus(String status, String email) {
+        return decisionRepository
+                .findByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        normalizeEmail(email), status);
     }
 
+    @Transactional(readOnly = true)
     public Page<Decision> getDecisionsPaginated(
-            Pageable pageable, String search, String status) {
+            Pageable pageable, String search, String status, String email) {
 
-        String searchTerm =
-                (search == null) ? "" : search.trim();
+        String searchTerm = search == null ? "" : search.trim();
 
         String statusFilter =
-                (status == null
-                        || status.isBlank()
-                        || status.equalsIgnoreCase("ALL"))
+                status == null || status.isBlank()
+                        || status.equalsIgnoreCase("ALL")
                         ? ""
-                        : status.trim().toUpperCase();
+                        : status.trim().toUpperCase(Locale.ROOT);
 
         if (!statusFilter.isEmpty()
-                && !List.of(
-                        "PENDING",
-                        "IN_PROGRESS",
-                        "COMPLETED")
+                && !List.of("PENDING", "IN_PROGRESS", "COMPLETED")
                         .contains(statusFilter)) {
-
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid status. Allowed values: "
-                            + "PENDING, IN_PROGRESS, COMPLETED");
+                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED");
         }
 
-        return decisionRepository.findBySearchAndStatus(
-                searchTerm,
-                statusFilter,
-                pageable);
+        return decisionRepository.findByOwnerAndSearchAndStatus(
+                normalizeEmail(email), searchTerm, statusFilter, pageable);
     }
 
-    public DecisionDashboardResponse getDecisionDashboard() {
-        long total = decisionRepository.count();
+    @Transactional(readOnly = true)
+    public DecisionDashboardResponse getDecisionDashboard(String email) {
+        String ownerEmail = normalizeEmail(email);
 
-        long pending =
-                decisionRepository.countByStatusIgnoreCase("PENDING");
-
-        long inProgress =
-                decisionRepository.countByStatusIgnoreCase("IN_PROGRESS");
-
-        long completed =
-                decisionRepository.countByStatusIgnoreCase("COMPLETED");
+        long total = decisionRepository.countByOwner_EmailIgnoreCase(ownerEmail);
+        long pending = decisionRepository
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(ownerEmail, "PENDING");
+        long inProgress = decisionRepository
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(ownerEmail, "IN_PROGRESS");
+        long completed = decisionRepository
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(ownerEmail, "COMPLETED");
 
         return new DecisionDashboardResponse(
-                total,
-                pending,
-                inProgress,
-                completed);
+                total, pending, inProgress, completed);
+    }
+
+    private Decision findOwnedDecision(Long id, String email) {
+        return decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(id, normalizeEmail(email))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Decision not found"));
+    }
+
+    private AppUser findUser(String email) {
+        return appUserRepository.findByEmail(normalizeEmail(email))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Authenticated user not found"));
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Authenticated user email is missing");
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

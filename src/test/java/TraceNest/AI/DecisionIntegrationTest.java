@@ -1,11 +1,14 @@
 
 package TraceNest.AI;
 
+import java.security.Principal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +16,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,11 +34,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.hibernate.ddl-auto=create-drop",
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
 })
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class DecisionIntegrationTest {
+
+    private static final String TEST_EMAIL =
+            "integration-test@example.com";
+
+    private static final String TEST_PASSWORD =
+            "IntegrationTestPass123!";
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private Principal testPrincipal() {
+        return () -> TEST_EMAIL;
+    }
+
+    @BeforeEach
+    void setUpTestUser() {
+        appUserRepository.findByEmail(TEST_EMAIL)
+                .orElseGet(() -> appUserRepository.save(
+                        new AppUser(
+                                TEST_EMAIL,
+                                passwordEncoder.encode(TEST_PASSWORD)
+                        )
+                ));
+    }
 
     @Test
     void springApplicationContextShouldLoad() {
@@ -43,6 +75,7 @@ class DecisionIntegrationTest {
     @Test
     void createDecisionShouldReturn201() throws Exception {
         mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -61,6 +94,7 @@ class DecisionIntegrationTest {
     void createDecisionWithBlankTitleShouldReturn400WithDetails()
             throws Exception {
         mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -82,6 +116,7 @@ class DecisionIntegrationTest {
     void createDecisionWithInvalidStatusShouldReturn400WithDetails()
             throws Exception {
         mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -100,6 +135,7 @@ class DecisionIntegrationTest {
     void createDecisionWithBlankReasonShouldReturn400()
             throws Exception {
         mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -117,6 +153,7 @@ class DecisionIntegrationTest {
     void createDecisionWithMalformedJsonShouldReturn400()
             throws Exception {
         mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {"title": "Broken JSON", "reason":
@@ -130,7 +167,8 @@ class DecisionIntegrationTest {
 
     @Test
     void getAllDecisionsShouldReturn200() throws Exception {
-        mockMvc.perform(get("/api/decisions"))
+        mockMvc.perform(get("/api/decisions")
+                .principal(testPrincipal()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(
                         MediaType.APPLICATION_JSON));
@@ -143,7 +181,8 @@ class DecisionIntegrationTest {
                 "Testing retrieval by ID",
                 "PENDING");
 
-        mockMvc.perform(get("/api/decisions/" + id))
+        mockMvc.perform(get("/api/decisions/" + id)
+                .principal(testPrincipal()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.title")
@@ -153,7 +192,8 @@ class DecisionIntegrationTest {
     @Test
     void getDecisionByUnknownIdShouldReturn404WithErrorBody()
             throws Exception {
-        mockMvc.perform(get("/api/decisions/999999"))
+        mockMvc.perform(get("/api/decisions/999999")
+                .principal(testPrincipal()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
@@ -170,6 +210,7 @@ class DecisionIntegrationTest {
                 "PENDING");
 
         mockMvc.perform(put("/api/decisions/" + id)
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -189,6 +230,7 @@ class DecisionIntegrationTest {
     @Test
     void updateUnknownDecisionShouldReturn404() throws Exception {
         mockMvc.perform(put("/api/decisions/999999")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -210,18 +252,45 @@ class DecisionIntegrationTest {
                 "Testing DELETE endpoint",
                 "PENDING");
 
-        mockMvc.perform(delete("/api/decisions/" + id))
+        mockMvc.perform(delete("/api/decisions/" + id)
+                .principal(testPrincipal()))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/decisions/" + id))
+        mockMvc.perform(get("/api/decisions/" + id)
+                .principal(testPrincipal()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteUnknownDecisionShouldReturn404() throws Exception {
-        mockMvc.perform(delete("/api/decisions/999999"))
+        mockMvc.perform(delete("/api/decisions/999999")
+                .principal(testPrincipal()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void createDecisionWithReasonExceeding2000CharactersShouldReturn400()
+            throws Exception {
+        String longReason = "a".repeat(2001);
+
+        String requestBody = """
+            {
+                "title": "Long reason test",
+                "reason": "%s",
+                "status": "PENDING"
+            }
+            """.formatted(longReason);
+
+        mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Validation failed"))
+                .andExpect(jsonPath("$.details.reason")
+                        .value("Reason cannot exceed 2000 characters"));
     }
 
     private long createDecisionAndGetId(
@@ -230,6 +299,7 @@ class DecisionIntegrationTest {
             String statusValue) throws Exception {
 
         MvcResult result = mockMvc.perform(post("/api/decisions")
+                .principal(testPrincipal())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -252,26 +322,4 @@ class DecisionIntegrationTest {
 
         return Long.parseLong(matcher.group(1));
     }
-@Test
-void createDecisionWithReasonExceeding2000CharactersShouldReturn400()
-        throws Exception {
-
-    String longReason = "a".repeat(2001);
-
-    String requestBody = """
-        {
-            "title": "Long reason test",
-            "reason": "%s",
-            "status": "PENDING"
-        }
-        """.formatted(longReason);
-
-    mockMvc.perform(post("/api/decisions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(requestBody))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Validation failed"))
-            .andExpect(jsonPath("$.details.reason")
-                    .value("Reason cannot exceed 2000 characters"));
-}
 }

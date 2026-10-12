@@ -10,13 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -28,231 +31,280 @@ import TraceNest.AI.dto.DecisionDashboardResponse;
 @ExtendWith(MockitoExtension.class)
 class DecisionServiceTest {
 
+    private static final String USER_EMAIL = "anil@example.com";
+    private static final String OTHER_EMAIL = "other@example.com";
+
     @Mock
     private DecisionRepository decisionRepository;
 
     @Mock
     private DecisionHistoryRepository historyRepository;
 
+    @Mock
+    private AppUserRepository appUserRepository;
+
     @InjectMocks
     private DecisionService decisionService;
 
     private Decision decision;
+    private AppUser user;
 
     @BeforeEach
     void setUp() {
+        user = new AppUser(USER_EMAIL, "encoded-password");
+
         decision = new Decision();
         decision.setTitle("Test Decision");
         decision.setReason("Testing TraceNest AI");
         decision.setStatus("PENDING");
+        decision.setOwner(user);
     }
 
     @Test
-    void getAllDecisionsReturnsAllDecisions() {
-        when(decisionRepository.findAll())
+    void getAllDecisionsReturnsOnlyCurrentUsersDecisions() {
+        when(decisionRepository.findByOwner_EmailIgnoreCase(USER_EMAIL))
                 .thenReturn(List.of(decision));
 
         List<Decision> result =
-                decisionService.getAllDecisions();
+                decisionService.getAllDecisions(USER_EMAIL);
 
         assertEquals(1, result.size());
         assertEquals("Test Decision", result.get(0).getTitle());
+
+        verify(decisionRepository)
+                .findByOwner_EmailIgnoreCase(USER_EMAIL);
     }
 
     @Test
-    void getDecisionByIdReturnsDecisionWhenFound() {
-        when(decisionRepository.findById(1L))
+    void getDecisionByIdReturnsOwnedDecision() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(1L, USER_EMAIL))
                 .thenReturn(Optional.of(decision));
 
         Decision result =
-                decisionService.getDecisionById(1L);
+                decisionService.getDecisionById(1L, USER_EMAIL);
 
         assertEquals("Test Decision", result.getTitle());
     }
 
     @Test
-    void getDecisionByIdThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L))
+    void getDecisionByIdReturnsNotFoundForUnownedDecision() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(999L, USER_EMAIL))
                 .thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> decisionService.getDecisionById(999L));
+                () -> decisionService.getDecisionById(999L, USER_EMAIL));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
     @Test
-    void createDecisionSavesDecisionAndHistory() {
-        decision.setId(1L);
+    void createDecisionAssignsCurrentUserAndRecordsHistory() {
+        when(appUserRepository.findByEmail(USER_EMAIL))
+                .thenReturn(Optional.of(user));
 
-        when(decisionRepository.save(decision))
-                .thenReturn(decision);
+        when(decisionRepository.save(any(Decision.class)))
+                .thenAnswer(invocation -> {
+                    Decision saved = invocation.getArgument(0);
+                    saved.setId(1L);
+                    return saved;
+                });
 
         Decision result =
-                decisionService.createDecision(decision);
+                decisionService.createDecision(decision, USER_EMAIL);
 
         assertNotNull(result);
         assertEquals("Test Decision", result.getTitle());
+        assertEquals(USER_EMAIL, result.getOwner().getEmail());
 
-        verify(historyRepository)
-                .save(any(DecisionHistory.class));
+        verify(decisionRepository).save(any(Decision.class));
+        verify(historyRepository).save(any(DecisionHistory.class));
     }
 
     @Test
-    void updateDecisionUpdatesFieldsAndRecordsHistory() {
-        Decision updatedDecision = new Decision();
-        updatedDecision.setTitle("Updated Decision");
-        updatedDecision.setReason("Updated reason");
-        updatedDecision.setStatus("IN_PROGRESS");
+    void updateDecisionUpdatesOwnedDecisionAndRecordsHistory() {
+        Decision updated = new Decision();
+        updated.setTitle("Updated Decision");
+        updated.setReason("Updated reason");
+        updated.setStatus("IN_PROGRESS");
 
-        when(decisionRepository.findById(1L))
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(1L, USER_EMAIL))
                 .thenReturn(Optional.of(decision));
 
-        when(decisionRepository.save(decision))
-                .thenReturn(decision);
+        when(decisionRepository.save(decision)).thenReturn(decision);
 
-        Decision result = decisionService.updateDecision(
-                1L, updatedDecision);
+        Decision result =
+                decisionService.updateDecision(1L, updated, USER_EMAIL);
 
         assertEquals("Updated Decision", result.getTitle());
         assertEquals("Updated reason", result.getReason());
         assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(USER_EMAIL, result.getOwner().getEmail());
 
-        verify(historyRepository)
-                .save(any(DecisionHistory.class));
+        verify(historyRepository).save(any(DecisionHistory.class));
     }
 
     @Test
-    void updateDecisionThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L))
+    void updateDecisionCannotUpdateUnownedDecision() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(999L, USER_EMAIL))
                 .thenReturn(Optional.empty());
 
-        Decision updatedDecision = new Decision();
-        updatedDecision.setTitle("Updated Decision");
-        updatedDecision.setReason("Updated reason");
-        updatedDecision.setStatus("IN_PROGRESS");
+        Decision updated = new Decision();
+        updated.setTitle("Updated Decision");
+        updated.setReason("Updated reason");
+        updated.setStatus("IN_PROGRESS");
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> decisionService.updateDecision(
-                        999L, updatedDecision));
+                        999L, updated, USER_EMAIL));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
 
-        verify(historyRepository, never())
-                .save(any(DecisionHistory.class));
+        verify(decisionRepository, never()).save(any(Decision.class));
+        verify(historyRepository, never()).save(any(DecisionHistory.class));
     }
 
     @Test
-    void deleteDecisionDeletesAndRecordsHistory() {
-        when(decisionRepository.findById(1L))
+    void deleteDecisionDeletesOwnedDecisionAndRecordsHistory() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(1L, USER_EMAIL))
                 .thenReturn(Optional.of(decision));
 
-        decisionService.deleteDecision(1L);
+        decisionService.deleteDecision(1L, USER_EMAIL);
 
-        verify(historyRepository)
-                .save(any(DecisionHistory.class));
-
+        verify(historyRepository).save(any(DecisionHistory.class));
         verify(decisionRepository).delete(decision);
     }
 
     @Test
-    void deleteDecisionThrowsWhenNotFound() {
-        when(decisionRepository.findById(999L))
+    void deleteDecisionCannotDeleteUnownedDecision() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(999L, USER_EMAIL))
                 .thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> decisionService.deleteDecision(999L));
+                () -> decisionService.deleteDecision(999L, USER_EMAIL));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
 
-        verify(historyRepository, never())
-                .save(any(DecisionHistory.class));
+        verify(decisionRepository, never()).delete(any(Decision.class));
+        verify(historyRepository, never()).save(any(DecisionHistory.class));
     }
 
     @Test
-    void searchDecisionsByTitleReturnsMatchingDecisions() {
+    void searchDecisionsByTitleScopesResultsToCurrentUser() {
         when(decisionRepository
-                .findByTitleContainingIgnoreCase("Test"))
+                .findByOwner_EmailIgnoreCaseAndTitleContainingIgnoreCase(
+                        USER_EMAIL, "Test"))
                 .thenReturn(List.of(decision));
 
         List<Decision> result =
-                decisionService.searchDecisionsByTitle("Test");
+                decisionService.searchDecisionsByTitle("Test", USER_EMAIL);
 
         assertEquals(1, result.size());
 
         verify(decisionRepository)
-                .findByTitleContainingIgnoreCase("Test");
+                .findByOwner_EmailIgnoreCaseAndTitleContainingIgnoreCase(
+                        USER_EMAIL, "Test");
     }
 
     @Test
-    void getDecisionsByStatusReturnsMatchingDecisions() {
-        when(decisionRepository.findByStatusIgnoreCase("PENDING"))
+    void getDecisionsByStatusScopesResultsToCurrentUser() {
+        when(decisionRepository
+                .findByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        USER_EMAIL, "PENDING"))
                 .thenReturn(List.of(decision));
 
         List<Decision> result =
-                decisionService.getDecisionsByStatus("PENDING");
+                decisionService.getDecisionsByStatus("PENDING", USER_EMAIL);
 
         assertEquals(1, result.size());
 
         verify(decisionRepository)
-                .findByStatusIgnoreCase("PENDING");
+                .findByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        USER_EMAIL, "PENDING");
     }
 
     @Test
-    void getDecisionsPaginatedReturnsPage() {
-        Page<Decision> page =
-                new PageImpl<>(List.of(decision));
-
+    void getDecisionsPaginatedReturnsOwnerScopedPage() {
+        Page<Decision> page = new PageImpl<>(List.of(decision));
         PageRequest pageable = PageRequest.of(0, 10);
 
-        when(decisionRepository.findBySearchAndStatus(
-                "", "", pageable))
+        when(decisionRepository.findByOwnerAndSearchAndStatus(
+                USER_EMAIL, "", "", pageable))
                 .thenReturn(page);
 
-        Page<Decision> result =
-                decisionService.getDecisionsPaginated(
-                        pageable, null, null);
+        Page<Decision> result = decisionService.getDecisionsPaginated(
+                pageable, null, null, USER_EMAIL);
 
         assertEquals(1, result.getTotalElements());
 
-        verify(decisionRepository).findBySearchAndStatus(
-                "", "", pageable);
+        verify(decisionRepository).findByOwnerAndSearchAndStatus(
+                USER_EMAIL, "", "", pageable);
     }
 
     @Test
-    void getDecisionDashboardReturnsCounts() {
-        when(decisionRepository.count())
+    void getDecisionDashboardReturnsCurrentUsersCounts() {
+        when(decisionRepository.countByOwner_EmailIgnoreCase(USER_EMAIL))
                 .thenReturn(5L);
 
         when(decisionRepository
-                .countByStatusIgnoreCase("PENDING"))
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        USER_EMAIL, "PENDING"))
                 .thenReturn(2L);
 
         when(decisionRepository
-                .countByStatusIgnoreCase("IN_PROGRESS"))
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        USER_EMAIL, "IN_PROGRESS"))
                 .thenReturn(2L);
 
         when(decisionRepository
-                .countByStatusIgnoreCase("COMPLETED"))
+                .countByOwner_EmailIgnoreCaseAndStatusIgnoreCase(
+                        USER_EMAIL, "COMPLETED"))
                 .thenReturn(1L);
 
         DecisionDashboardResponse result =
-                decisionService.getDecisionDashboard();
+                decisionService.getDecisionDashboard(USER_EMAIL);
 
         assertNotNull(result);
 
-        verify(decisionRepository).count();
-
         verify(decisionRepository)
-                .countByStatusIgnoreCase("PENDING");
+                .countByOwner_EmailIgnoreCase(USER_EMAIL);
+    }
 
-        verify(decisionRepository)
-                .countByStatusIgnoreCase("IN_PROGRESS");
+    @Test
+    void getDecisionHistoryRequiresOwnership() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(1L, USER_EMAIL))
+                .thenReturn(Optional.of(decision));
 
-        verify(decisionRepository)
-                .countByStatusIgnoreCase("COMPLETED");
+        when(historyRepository.findByDecisionIdOrderByChangedAtDesc(1L))
+                .thenReturn(List.of());
+
+        List<DecisionHistory> result =
+                decisionService.getDecisionHistory(1L, USER_EMAIL);
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void getDecisionHistoryCannotAccessUnownedDecision() {
+        when(decisionRepository
+                .findByIdAndOwner_EmailIgnoreCase(1L, USER_EMAIL))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                ResponseStatusException.class,
+                () -> decisionService.getDecisionHistory(1L, USER_EMAIL));
+
+        verify(historyRepository, never())
+                .findByDecisionIdOrderByChangedAtDesc(1L);
     }
 }
