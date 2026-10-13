@@ -18,7 +18,9 @@ function normalizeStatus(status) {
   const value = String(status).toUpperCase().replace(/[\s-]+/g, '_')
 
   if (value === 'INPROGRESS') return 'IN_PROGRESS'
-  if (['PENDING', 'IN_PROGRESS', 'COMPLETED'].includes(value)) return value
+if (['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(value)) {
+  return value
+}
 
   return 'UNSET'
 }
@@ -901,6 +903,7 @@ export default function App() {
                     <option value="PENDING">Pending</option>
                     <option value="IN_PROGRESS">In progress</option>
                     <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
                   </select>
                 </label>
 
@@ -1065,6 +1068,7 @@ export default function App() {
                             <option value="COMPLETED">
                               Set completed
                             </option>
+                            <option value="CANCELLED">Set cancelled</option>
                           </select>
                         </td>
 
