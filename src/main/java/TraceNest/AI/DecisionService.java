@@ -131,7 +131,7 @@ public class DecisionService {
                         .contains(statusFilter)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED");
+                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED, CANCELLED");
         }
 
         return decisionRepository.findByOwnerAndSearchAndStatus(

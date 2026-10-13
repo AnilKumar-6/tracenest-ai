@@ -974,11 +974,14 @@ export default function App() {
                   }
                   aria-label="Filter by status"
                 >
+               
                   <option value="ALL">All statuses</option>
                   <option value="PENDING">Pending</option>
                   <option value="IN_PROGRESS">In progress</option>
                   <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                   <option value="UNSET">Unset</option>
+
                 </select>
               </label>
 
