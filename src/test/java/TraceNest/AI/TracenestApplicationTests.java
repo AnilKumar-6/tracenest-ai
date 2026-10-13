@@ -10,7 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
     "spring.datasource.username=sa",
     "spring.datasource.password=",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "app.jwt.secret=VHJhY2VOZXN0LVRlc3QtT25seS1TZWNyZXQtTm90LUZvci1Qcm9kdWN0aW9uLTIwMjY=",
+    "app.jwt.expiration-ms=900000"
 })
 class TracenestApplicationTests {
 
@@ -18,4 +20,3 @@ class TracenestApplicationTests {
     void contextLoads() {
     }
 }
-
