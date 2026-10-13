@@ -37,8 +37,8 @@ public class DecisionController {
     private static final Set<String> ALLOWED_SORT_FIELDS =
             Set.of("id", "title", "reason", "status");
 
-    private static final Set<String> ALLOWED_STATUSES =
-            Set.of("PENDING", "IN_PROGRESS", "COMPLETED");
+   private static final Set<String> ALLOWED_STATUSES =
+        Set.of("PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED");
 
     private final DecisionService decisionService;
 
@@ -132,7 +132,7 @@ public class DecisionController {
         if (!ALLOWED_STATUSES.contains(normalizedStatus)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED");
+                    "Invalid status. Allowed values: PENDING, IN_PROGRESS, COMPLETED, CANCELLED");
         }
 
         return decisionService.getDecisionsByStatus(

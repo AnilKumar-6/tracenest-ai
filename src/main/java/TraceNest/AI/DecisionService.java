@@ -127,7 +127,7 @@ public class DecisionService {
                         : status.trim().toUpperCase(Locale.ROOT);
 
         if (!statusFilter.isEmpty()
-                && !List.of("PENDING", "IN_PROGRESS", "COMPLETED")
+                && !List.of("PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED")
                         .contains(statusFilter)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,

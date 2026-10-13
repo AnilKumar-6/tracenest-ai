@@ -89,6 +89,24 @@ class DecisionIntegrationTest {
                         .value("Integration test decision"))
                 .andExpect(jsonPath("$.status").value("PENDING"));
     }
+    
+@Test
+void createDecisionWithCancelledStatusShouldReturn201() throws Exception {
+    mockMvc.perform(post("/api/decisions")
+            .principal(testPrincipal())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "Cancelled decision",
+                    "reason": "Testing the cancelled status",
+                    "status": "CANCELLED"
+                }
+                """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.title").value("Cancelled decision"))
+            .andExpect(jsonPath("$.status").value("CANCELLED"));
+}
+
 
     @Test
     void createDecisionWithBlankTitleShouldReturn400WithDetails()
@@ -128,7 +146,7 @@ class DecisionIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.details.status")
-                        .value("Status must be PENDING, IN_PROGRESS, or COMPLETED"));
+                        .value("Status must be PENDING, IN_PROGRESS, COMPLETED, or CANCELLED"));
     }
 
     @Test
@@ -173,6 +191,39 @@ class DecisionIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(
                         MediaType.APPLICATION_JSON));
     }
+
+    
+@Test
+void updatingDecisionStatusShouldCreateHistoryEntry() throws Exception {
+    // 1. Create a decision with PENDING status.
+    long id = createDecisionAndGetId(
+            "History test decision",
+            "Testing status history",
+            "PENDING");
+
+    // 2. Update the status to CANCELLED.
+    mockMvc.perform(put("/api/decisions/" + id)
+            .principal(testPrincipal())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                    "title": "History test decision",
+                    "reason": "Testing status history",
+                    "status": "CANCELLED"
+                }
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+    // 3. Retrieve the decision's history.
+    mockMvc.perform(get("/api/decisions/" + id + "/history")
+            .principal(testPrincipal()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].action").value("UPDATED"))
+            .andExpect(content().string(
+                    org.hamcrest.Matchers.containsString(
+                            "PENDING -> CANCELLED")));
+}
 
     @Test
     void getDecisionByIdShouldReturn200() throws Exception {

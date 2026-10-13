@@ -41,9 +41,9 @@ public class Decision {
 
     @NotBlank(message = "Status is required")
     @Pattern(
-        regexp = "PENDING|IN_PROGRESS|COMPLETED",
-        message = "Status must be PENDING, IN_PROGRESS, or COMPLETED"
-    )
+    regexp = "PENDING|IN_PROGRESS|COMPLETED|CANCELLED",
+    message = "Status must be PENDING, IN_PROGRESS, COMPLETED, or CANCELLED"
+)
     private String status;
 
     @Column(updatable = false)
